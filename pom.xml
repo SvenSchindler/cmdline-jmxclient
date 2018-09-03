@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<project>
+<project xmlns:pom="http://maven.apache.org/POM/4.0.0">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.archive.jmx</groupId>
     <artifactId>cmdline-jmxclient</artifactId>
@@ -39,8 +39,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                    <debug>false</debug>
                 </configuration>
             </plugin>
         </plugins>
