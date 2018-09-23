@@ -43,7 +43,6 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import javax.management.Attribute;
 import javax.management.AttributeList;
@@ -64,9 +63,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
-
-import static java.util.stream.Collectors.*;
-
 
 /**
  * A Simple Command-Line JMX Client.
@@ -619,12 +615,24 @@ public class Client {
         // overrides.  Then, look at the attribute and use its type.
         MBeanAttributeInfo info =
             (MBeanAttributeInfo)getFeatureInfo(infos, parse.getCmd());
-        java.lang.reflect.Constructor c = Class.forName(
-             info.getType()).getConstructor(new Class[] {String.class});
         Attribute a = new Attribute(parse.getCmd(),
-            c.newInstance(new Object[] {parse.getArgs()[0]}));
+            getParam(info.getType(), parse.getArgs()[0]));
         mbsc.setAttribute(instance.getObjectName(), a);
         return null;
+    }
+
+    private Object getParam(String type, String arg) throws Exception
+    {
+        java.lang.reflect.Constructor c;
+        if (isPrimitive(type)) {
+          c = classForPrimitive(type).getConstructor(
+                  new Class[]{String.class});
+        } else {
+          c = Class.forName(
+                  type).getConstructor(
+                  new Class[]{String.class});
+        }
+        return c.newInstance(new Object[] {arg});
     }
 
     protected Object doBeanOperation(MBeanServerConnection mbsc,
@@ -653,19 +661,8 @@ public class Client {
                 Object [] params = (paraminfosLength == 0)? null
                         : new Object[paraminfosLength];
                 for (int i = 0; i < paraminfosLength; i++) {
-                    MBeanParameterInfo paraminfo = paraminfos[i];
-                    java.lang.reflect.Constructor c;
-                    if (isPrimitive(paraminfo.getType())) {
-                      c = classForPrimitive(paraminfo.getType()).getConstructor(
-                              new Class[]{String.class});
-                    } else {
-                      c = Class.forName(
-                              paraminfo.getType()).getConstructor(
-                              new Class[]{String.class});
-                    }
-                    params[i] =
-                        c.newInstance(new Object[] {parse.getArgs()[i]});
-                    signature[i] = paraminfo.getType();
+                    signature[i] = paraminfos[i].getType();
+                    params[i] = getParam(signature[i], parse.getArgs()[i]);
                 }
                 result = mbsc.invoke(instance.getObjectName(), parse.getCmd(),
                     params, signature);
@@ -686,9 +683,7 @@ public class Client {
             build();
 
     private static boolean isPrimitive(String type) {
-        return primitivesToWrappers.entrySet().
-                stream().map(x -> x.getKey()).
-                collect(toList()).contains(type);
+        return primitivesToWrappers.containsKey(type);
     }
 
     private static Class classForPrimitive(String primitive) {
